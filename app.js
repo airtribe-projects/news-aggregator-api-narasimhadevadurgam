@@ -5,7 +5,7 @@ const axios = require('axios');
 
 const app = express();
 const port = 3000;
-const JWT_SECRET = 'news-aggregator-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'news-aggregator-secret-key';
 
 // In-memory user store
 const users = [];
@@ -141,7 +141,7 @@ app.get('/news', authenticate, async (req, res) => {
       return res.status(200).json({ news: [] });
     }
 
-    const cacheKey = preferences.sort().join(',');
+    const cacheKey = [...preferences].map((p) => encodeURIComponent(p)).sort().join(',');
 
     // Check cache
     if (newsCache[cacheKey] && Date.now() - newsCache[cacheKey].timestamp < CACHE_TTL) {
@@ -160,13 +160,14 @@ app.get('/news', authenticate, async (req, res) => {
           headers: { 'X-Api-Key': newsApiKey },
           timeout: 5000,
         });
-        if (response.data && response.data.articles && response.data.articles.length > 0) {
-          articles = response.data.articles.map((a) => ({
-            title: a.title,
-            description: a.description,
-            url: a.url,
-            source: a.source?.name || 'Unknown',
-            publishedAt: a.publishedAt,
+        const responseArticles = response?.data?.articles;
+        if (Array.isArray(responseArticles) && responseArticles.length > 0) {
+          articles = responseArticles.map((a) => ({
+            title: a?.title || '',
+            description: a?.description || '',
+            url: a?.url || '',
+            source: a?.source?.name || 'Unknown',
+            publishedAt: a?.publishedAt || '',
           }));
         }
       }
@@ -183,13 +184,14 @@ app.get('/news', authenticate, async (req, res) => {
             params: { q: query, lang: 'en', max: 10, apikey: gnewsKey },
             timeout: 5000,
           });
-          if (response.data && response.data.articles && response.data.articles.length > 0) {
-            articles = response.data.articles.map((a) => ({
-              title: a.title,
-              description: a.description,
-              url: a.url,
-              source: a.source?.name || 'Unknown',
-              publishedAt: a.publishedAt,
+          const gnewsArticles = response?.data?.articles;
+          if (Array.isArray(gnewsArticles) && gnewsArticles.length > 0) {
+            articles = gnewsArticles.map((a) => ({
+              title: a?.title || '',
+              description: a?.description || '',
+              url: a?.url || '',
+              source: a?.source?.name || 'Unknown',
+              publishedAt: a?.publishedAt || '',
             }));
           }
         }
